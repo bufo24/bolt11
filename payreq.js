@@ -720,39 +720,37 @@ function encode (inputData, addDefaults) {
   }
 
   // If there is route info tag, check that each route has all 4 necessary info
-  if (tagsContainItem(data.tags, TAGNAMES['3'])) {
-    const routingInfo = tagsItems(data.tags, TAGNAMES['3'])
-    routingInfo.forEach(route => {
-      route.forEach(hop => {
-        if (hop.pubkey === undefined ||
-        hop.short_channel_id === undefined ||
-        hop.fee_base_msat === undefined ||
-        hop.fee_proportional_millionths === undefined ||
-        hop.cltv_expiry_delta === undefined) {
-          throw new Error('Routing info is incomplete')
-        }
-        if (!secp256k1.publicKeyVerify(hexToBuffer(hop.pubkey))) {
-          throw new Error('Routing info pubkey is not a valid pubkey')
-        }
-        const shortId = hexToBuffer(hop.short_channel_id)
-        if (!(shortId instanceof Buffer) || shortId.length !== 8) {
-          throw new Error('Routing info short channel id must be 8 bytes')
-        }
-        if (typeof hop.fee_base_msat !== 'number' ||
-          Math.floor(hop.fee_base_msat) !== hop.fee_base_msat) {
-          throw new Error('Routing info fee base msat is not an integer')
-        }
-        if (typeof hop.fee_proportional_millionths !== 'number' ||
-          Math.floor(hop.fee_proportional_millionths) !== hop.fee_proportional_millionths) {
-          throw new Error('Routing info fee proportional millionths is not an integer')
-        }
-        if (typeof hop.cltv_expiry_delta !== 'number' ||
-          Math.floor(hop.cltv_expiry_delta) !== hop.cltv_expiry_delta) {
-          throw new Error('Routing info cltv expiry delta is not an integer')
-        }
-      })
+  const routingInfo = tagsItems(data.tags, TAGNAMES['3'])
+  routingInfo?.forEach(route => {
+    route.forEach(hop => {
+      if (hop.pubkey === undefined ||
+      hop.short_channel_id === undefined ||
+      hop.fee_base_msat === undefined ||
+      hop.fee_proportional_millionths === undefined ||
+      hop.cltv_expiry_delta === undefined) {
+        throw new Error('Routing info is incomplete')
+      }
+      if (!secp256k1.publicKeyVerify(hexToBuffer(hop.pubkey))) {
+        throw new Error('Routing info pubkey is not a valid pubkey')
+      }
+      const shortId = hexToBuffer(hop.short_channel_id)
+      if (!(shortId instanceof Buffer) || shortId.length !== 8) {
+        throw new Error('Routing info short channel id must be 8 bytes')
+      }
+      if (typeof hop.fee_base_msat !== 'number' ||
+        Math.floor(hop.fee_base_msat) !== hop.fee_base_msat) {
+        throw new Error('Routing info fee base msat is not an integer')
+      }
+      if (typeof hop.fee_proportional_millionths !== 'number' ||
+        Math.floor(hop.fee_proportional_millionths) !== hop.fee_proportional_millionths) {
+        throw new Error('Routing info fee proportional millionths is not an integer')
+      }
+      if (typeof hop.cltv_expiry_delta !== 'number' ||
+        Math.floor(hop.cltv_expiry_delta) !== hop.cltv_expiry_delta) {
+        throw new Error('Routing info cltv expiry delta is not an integer')
+      }
     })
-  }
+  })
 
   let prefix = 'ln'
   prefix += coinTypeObj.bech32
