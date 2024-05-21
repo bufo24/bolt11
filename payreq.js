@@ -721,7 +721,7 @@ function encode (inputData, addDefaults) {
 
   // If there is route info tag, check that each route has all 4 necessary info
   const routingInfo = tagsItems(data.tags, TAGNAMES['3'])
-  routingInfo?.forEach(route => {
+  routingInfo && routingInfo.forEach(route => {
     route.forEach(hop => {
       if (hop.pubkey === undefined ||
       hop.short_channel_id === undefined ||
