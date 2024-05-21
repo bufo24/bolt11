@@ -395,14 +395,20 @@ function purposeCommitEncoder (data) {
   return bech32.toWords(buffer)
 }
 
-function tagsItems (tags, tagName) {
+function tagsItem (tags, tagName) {
   const tag = tags.filter(item => item.tagName === tagName)
   const data = tag.length > 0 ? tag[0].data : null
   return data
 }
 
+function tagsItems (tags, tagName) {
+  const tag = tags.filter(item => item.tagName === tagName)
+  const data = tag.length > 0 ? tag.map((t) => t.data) : null
+  return data
+}
+
 function tagsContainItem (tags, tagName) {
-  return tagsItems(tags, tagName) !== null
+  return tagsItem(tags, tagName) !== null
 }
 
 function orderKeys (unorderedObj, forDecode) {
@@ -510,7 +516,7 @@ function sign (inputPayReqObj, inputPrivateKey) {
   let nodePublicKey, tagNodePublicKey
   // If there is a payee_node_key tag convert to buffer
   if (tagsContainItem(payReqObj.tags, TAGNAMES['19'])) {
-    tagNodePublicKey = hexToBuffer(tagsItems(payReqObj.tags, TAGNAMES['19']))
+    tagNodePublicKey = hexToBuffer(tagsItem(payReqObj.tags, TAGNAMES['19']))
   }
   // If there is payeeNodeKey attribute, convert to buffer
   if (payReqObj.payeeNodeKey) {
@@ -610,7 +616,7 @@ function encode (inputData, addDefaults) {
         throw new Error('Payment request requires feature bits with at least payment secret support flagged if payment secret is included')
       }
     } else {
-      const fB = tagsItems(data.tags, TAGNAMES['5'])
+      const fB = tagsItem(data.tags, TAGNAMES['5'])
       if (!fB.payment_secret || (!fB.payment_secret.supported && !fB.payment_secret.required)) {
         throw new Error('Payment request requires feature bits with at least payment secret support flagged if payment secret is included')
       }
@@ -631,7 +637,7 @@ function encode (inputData, addDefaults) {
   // If a description exists, check to make sure the buffer isn't greater than
   // 639 bytes long, since 639 * 8 / 5 = 1023 words (5 bit) when padded
   if (tagsContainItem(data.tags, TAGNAMES['13']) &&
-      Buffer.from(tagsItems(data.tags, TAGNAMES['13']), 'utf8').length > 639) {
+      Buffer.from(tagsItem(data.tags, TAGNAMES['13']), 'utf8').length > 639) {
     throw new Error('Description is too long: Max length 639 bytes')
   }
 
@@ -655,7 +661,7 @@ function encode (inputData, addDefaults) {
 
   let nodePublicKey, tagNodePublicKey
   // If there is a payee_node_key tag convert to buffer
-  if (tagsContainItem(data.tags, TAGNAMES['19'])) tagNodePublicKey = hexToBuffer(tagsItems(data.tags, TAGNAMES['19']))
+  if (tagsContainItem(data.tags, TAGNAMES['19'])) tagNodePublicKey = hexToBuffer(tagsItem(data.tags, TAGNAMES['19']))
   // If there is payeeNodeKey attribute, convert to buffer
   if (data.payeeNodeKey) nodePublicKey = hexToBuffer(data.payeeNodeKey)
   if (nodePublicKey && tagNodePublicKey && !tagNodePublicKey.equals(nodePublicKey)) {
@@ -668,7 +674,7 @@ function encode (inputData, addDefaults) {
   let code, addressHash, address
   // If there is a fallback address tag we must check it is valid
   if (tagsContainItem(data.tags, TAGNAMES['9'])) {
-    const addrData = tagsItems(data.tags, TAGNAMES['9'])
+    const addrData = tagsItem(data.tags, TAGNAMES['9'])
     // Most people will just provide address so Hash and code will be undefined here
     address = addrData.address
     addressHash = addrData.addressHash
@@ -717,32 +723,34 @@ function encode (inputData, addDefaults) {
   if (tagsContainItem(data.tags, TAGNAMES['3'])) {
     const routingInfo = tagsItems(data.tags, TAGNAMES['3'])
     routingInfo.forEach(route => {
-      if (route.pubkey === undefined ||
-        route.short_channel_id === undefined ||
-        route.fee_base_msat === undefined ||
-        route.fee_proportional_millionths === undefined ||
-        route.cltv_expiry_delta === undefined) {
-        throw new Error('Routing info is incomplete')
-      }
-      if (!secp256k1.publicKeyVerify(hexToBuffer(route.pubkey))) {
-        throw new Error('Routing info pubkey is not a valid pubkey')
-      }
-      const shortId = hexToBuffer(route.short_channel_id)
-      if (!(shortId instanceof Buffer) || shortId.length !== 8) {
-        throw new Error('Routing info short channel id must be 8 bytes')
-      }
-      if (typeof route.fee_base_msat !== 'number' ||
-        Math.floor(route.fee_base_msat) !== route.fee_base_msat) {
-        throw new Error('Routing info fee base msat is not an integer')
-      }
-      if (typeof route.fee_proportional_millionths !== 'number' ||
-        Math.floor(route.fee_proportional_millionths) !== route.fee_proportional_millionths) {
-        throw new Error('Routing info fee proportional millionths is not an integer')
-      }
-      if (typeof route.cltv_expiry_delta !== 'number' ||
-        Math.floor(route.cltv_expiry_delta) !== route.cltv_expiry_delta) {
-        throw new Error('Routing info cltv expiry delta is not an integer')
-      }
+      route.forEach(hop => {
+        if (hop.pubkey === undefined ||
+        hop.short_channel_id === undefined ||
+        hop.fee_base_msat === undefined ||
+        hop.fee_proportional_millionths === undefined ||
+        hop.cltv_expiry_delta === undefined) {
+          throw new Error('Routing info is incomplete')
+        }
+        if (!secp256k1.publicKeyVerify(hexToBuffer(hop.pubkey))) {
+          throw new Error('Routing info pubkey is not a valid pubkey')
+        }
+        const shortId = hexToBuffer(hop.short_channel_id)
+        if (!(shortId instanceof Buffer) || shortId.length !== 8) {
+          throw new Error('Routing info short channel id must be 8 bytes')
+        }
+        if (typeof hop.fee_base_msat !== 'number' ||
+          Math.floor(hop.fee_base_msat) !== hop.fee_base_msat) {
+          throw new Error('Routing info fee base msat is not an integer')
+        }
+        if (typeof hop.fee_proportional_millionths !== 'number' ||
+          Math.floor(hop.fee_proportional_millionths) !== hop.fee_proportional_millionths) {
+          throw new Error('Routing info fee proportional millionths is not an integer')
+        }
+        if (typeof hop.cltv_expiry_delta !== 'number' ||
+          Math.floor(hop.cltv_expiry_delta) !== hop.cltv_expiry_delta) {
+          throw new Error('Routing info cltv expiry delta is not an integer')
+        }
+      })
     })
   }
 
@@ -843,7 +851,7 @@ function encode (inputData, addDefaults) {
   if (sigWords) dataWords = dataWords.concat(sigWords)
 
   if (tagsContainItem(data.tags, TAGNAMES['6'])) {
-    data.timeExpireDate = data.timestamp + tagsItems(data.tags, TAGNAMES['6'])
+    data.timeExpireDate = data.timestamp + tagsItem(data.tags, TAGNAMES['6'])
     data.timeExpireDateString = new Date(data.timeExpireDate * 1000).toISOString()
   }
   data.timestampString = new Date(data.timestamp * 1000).toISOString()
@@ -972,14 +980,14 @@ function decode (paymentRequest, network) {
   // be kind and provide an absolute expiration date.
   // good for logs
   if (tagsContainItem(tags, TAGNAMES['6'])) {
-    timeExpireDate = timestamp + tagsItems(tags, TAGNAMES['6'])
+    timeExpireDate = timestamp + tagsItem(tags, TAGNAMES['6'])
     timeExpireDateString = new Date(timeExpireDate * 1000).toISOString()
   }
 
   const toSign = Buffer.concat([Buffer.from(prefix, 'utf8'), Buffer.from(convert(wordsNoSig, 5, 8))])
   const payReqHash = sha256(toSign)
   const sigPubkey = Buffer.from(secp256k1.ecdsaRecover(sigBuffer, recoveryFlag, payReqHash, true))
-  if (tagsContainItem(tags, TAGNAMES['19']) && tagsItems(tags, TAGNAMES['19']) !== sigPubkey.toString('hex')) {
+  if (tagsContainItem(tags, TAGNAMES['19']) && tagsItem(tags, TAGNAMES['19']) !== sigPubkey.toString('hex')) {
     throw new Error('Lightning Payment Request signature pubkey does not match payee pubkey')
   }
 
@@ -1011,17 +1019,25 @@ function decode (paymentRequest, network) {
 }
 
 function getTagsObject (tags) {
-  const result = {}
+  const result = {
+    [TAGNAMES['3']]: []
+  }
   tags.forEach(tag => {
     if (tag.tagName === unknownTagName) {
       if (!result.unknownTags) {
         result.unknownTags = []
       }
       result.unknownTags.push(tag.data)
+    } else if (tag.tagName === TAGNAMES['3']) {
+      result[tag.tagName].push(tag.data)
     } else {
       result[tag.tagName] = tag.data
     }
   })
+
+  if (result[TAGNAMES['3']].length === 0) {
+    delete result[TAGNAMES['3']]
+  }
 
   return result
 }

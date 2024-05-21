@@ -141,7 +141,11 @@ fixtures.decode.valid.forEach((f) => {
       const data = decoded.tagsObject[key]
       const tagsData = decoded.tags.filter(item => item.tagName === key)
       t.assert(tagsData.length === 1)
-      t.same(data, tagsData[0].data)
+      if (key === 'routing_info') {
+        t.same(data, tagsData.map((t) => t.data))
+      } else {
+        t.same(data, tagsData[0].data)
+      }
     })
 
     t.end()
@@ -321,5 +325,47 @@ tape('can encode and decode small timestamp', (t) => {
   // This would fail because of corruption before fixing timestamp encoding
   const reEncoded = lnpayreq.encode(decoded)
   t.same(reEncoded.paymentRequest, signedData.paymentRequest)
+  t.end()
+})
+
+tape('can decode multiple route hints', (t) => {
+  const decoded = lnpayreq.decode('lnbc21n1pnyc64fpp55h2xw2y9ygl80zh5zrwf3sz' +
+                                  'skqshyvm2zzvrk7h7fxay3k0e7t9shp5jgmctxuhd' +
+                                  'clx5w4cfgr70v362tc6zn4e9h8s3tllv2j0e970fw' +
+                                  'ssxqyjw5qrzjqg6khjn0d0ed5vltq8jtw49fl3t42' +
+                                  '5hg0n7hvkynk70c8xplatfszyqsqyqqzqgpqyqqqq' +
+                                  'lgqqqqqqgqjqrzjqtc63jrkql6ptj8j9sq9jvqzwa' +
+                                  'v5rh4y3p5uugcfdte8kr8aes9kjyqsqyqqzqgpqyq' +
+                                  'qqqlgqqqqqqgqjqcqzzssp5yc07wjjnc3t9w3w5sn' +
+                                  'y6hmnq320hfqse7zsv4n3k97mujheekh7snp4qwxw' +
+                                  'ehlkj9awmypclkf06agf3u64sy7e4p6uvkk8dfja8' +
+                                  '7st8rvtz9qypqsq50ne8s8dyc04a373fhc7mcllh5' +
+                                  'ycsvj7mek8zg9w7h5kzez6u308m8ld22dggg4fysl' +
+                                  'w67jjnd94hgml0w2dw4dq7n4623n0ce6hd9sqs9cxyt'
+  )
+  t.assert(decoded.tagsObject.routing_info.length === 2)
+  t.assert(decoded.tagsObject.routing_info[0].length === 1)
+  t.assert(decoded.tagsObject.routing_info[1].length === 1)
+  t.end()
+})
+
+tape('can decode route hints with multiple hops', (t) => {
+  const decoded = lnpayreq.decode('lnbc21n1pnycmvgpp5eez89m3mmjtjxz99fv7nam' +
+                                  'faagjecw9k7xvmmsd7dg0thay8jx5shp5jgmctxu' +
+                                  'hdclx5w4cfgr70v362tc6zn4e9h8s3tllv2j0e97' +
+                                  '0fwssxqyjw5qr9yqg6khjn0d0ed5vltq8jtw49fl' +
+                                  '3t425hg0n7hvkynk70c8xplatfszyqsqyqqzqgpq' +
+                                  'yqqqqlgqqqqqqgqjqpr2672da4l9k3navq7fd654' +
+                                  '879w42jap706ajcjwmelquc8l4dxqgszqqsqqgpq' +
+                                  'ypqqqqraqqqqqqpqzgqcqzzssp5f2twpv6mkaygp' +
+                                  'w0qpqytl3m0x76thftrw4gqzp05f084susptxpqn' +
+                                  'p4qgkap5y72ewa6s08e65huc4fexryccla2906zm' +
+                                  'txxwwd9dvvlrwq79qypqsquzmg28e4g06d59t5dz' +
+                                  'hv7ms242w9uf8rkf4rsnf4495j27k6wmzqfgyvqy' +
+                                  'he6alhhrtwg7djvpvfkf62wefatmnm6sutnwpkzj' +
+                                  'd750qpyeman0'
+  )
+  t.assert(decoded.tagsObject.routing_info.length === 1)
+  t.assert(decoded.tagsObject.routing_info[0].length === 2)
   t.end()
 })

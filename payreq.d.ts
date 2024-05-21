@@ -57,7 +57,7 @@ export declare type TagsObject = {
   expire_time?: number;
   min_final_cltv_expiry?: number;
   fallback_address?: FallbackAddress;
-  routing_info?: RoutingInfo;
+  routing_info?: RoutingInfo[];
   feature_bits?: FeatureBits;
   unknownTags?: UnknownTag[];
 };
